@@ -1,7 +1,7 @@
 # Project for Push Notifications to Webhooks
 
 ## Introduction
-**GmailNotify** This is a quick project made to consume Pub-Sub messages sent via Gmail to be processed and finally execute a Webhook for external services to receive a push of email data.
+**GmailNotify** This is a quick project made to consume Pub-Sub messages sent via Gmail to be processed and finally execute a Webhook for external services to receive a push of email data. It now supports multiple Gmail mailboxes in a single deployment.
 
 It is in essense a set of NodeJS Cloud Functions to handle Gmail Notifications which can be configured to receive wide range of Gmail notifications based on the `config/appconfig.json` file setting.
 
@@ -65,7 +65,7 @@ While entering values for the application config, please keep in mind the follow
 1. `gcp.storage.*` - any folder name property (like `gcp.storage.rootFolderName` or `gcp.storage.debugFolderName`, etc.) must end with a `/` (forward slash) if a value is provided.
 2. `gcp.storage.historyFilename` - property must have a filename ending with `.json` file extension.
 3. `gcp.auth.googleKeyFilePath` - property must have a file path ending with a filename that has the `.json` file extension.
-4. `gcp.auth.subject` - property must be your full valid email address of the Gmail account you want to recevie the push notification from.
+4. `mailboxes[].email` - must be the full valid email address of each Gmail account you want to receive push notifications from. (`gcp.auth.subject` remains as an optional single-mailbox fallback.)
 5. `gmail` - property object is based on the **Gmail API** and more information on the appropriate values for this properties can be found in the [Gmail API Reference](https://developers.google.com/gmail/api/reference/rest).
 
 ### Minimum Configuration
@@ -79,7 +79,7 @@ For you to quickly deploy this application, you only need to provide the followi
     ```
 2. `gcp.pubsub.topic` - the full topic name as provided in the Cloud Pub/Sub Dashboard.
 3. `gcp.storage.bucketName` - the full bucket name as provided in the Cloud Storage Dashboard.
-4. `gcp.auth.subject` - the full gmail email address you are to recevie the Pub/Sub notifications from.
+4. `mailboxes` - configure at least one mailbox entry (see below).
 
 **For `/credentials/sample-google-key.json` file.**
 1. Simply replace the content of this sample file with the content from your download `.json` cloud key file.
@@ -89,3 +89,44 @@ For you to quickly deploy this application, you only need to provide the followi
 * Rename the `sample-google-key.json` file to `google-key.json` file.
 
 * Rename the `sample-appconfig.json` file to `appconfig.json` file.
+
+### Multi-mailbox configuration
+
+Use the `mailboxes` array in `appconfig.json` to register each Gmail account you want to monitor. Each mailbox can override labels, webhook target, and storage folder.
+
+```
+{
+  "mailboxes": [
+    {
+      "id": "primary",
+      "email": "you@example.com",
+      "labelIds": ["UNREAD"],
+      "filterAction": "include",
+      "webhookUrl": "https://webhook.for.this.mailbox",
+      "storage": {
+        "folderName": "primary/"
+      }
+    },
+    {
+      "id": "support",
+      "email": "support@example.com",
+      "labelIds": ["UNREAD", "IMPORTANT"],
+      "filterAction": "include",
+      "webhookUrl": "https://webhook.for.support",
+      "storage": {
+        "folderName": "support/"
+      }
+    }
+  ]
+}
+```
+
+- If you omit `mailboxes`, the app will fall back to the legacy single-mailbox values (`gcp.auth.subject`, `gmail.labelsIds`, `gmail.filterAction`, and `external.webhookUrl`).
+- Storage artifacts (history/debug/email payloads) are written under `gcp.storage.rootFolderName + mailboxes[n].storage.folderName`, so each mailbox stays isolated.
+
+### Starting and stopping watch per mailbox
+
+- Start watch for one mailbox: `GET https://<function-url>/startWatch?mailboxId=primary`
+- Start watch for all configured mailboxes: `GET https://<function-url>/startWatch?mailboxId=all` (or omit the parameter to start all).
+- Stop watch for one mailbox: `GET https://<function-url>/stopWatch?mailboxId=primary`
+- Stop watch for all configured mailboxes: `GET https://<function-url>/stopWatch?mailboxId=all` (or omit the parameter to stop all).

@@ -15,12 +15,34 @@
         },
         "auth":{
             "googleKeyFilePath": "credentials/google-key.json",
-            "subject": "GMAIL_Email_Address"
+            "subject": ""
         }
     },
     "gmail": {
         "scopes": ["https://www.googleapis.com/auth/gmail.readonly"],
         "labelsIds": ["UNREAD"],
         "filterAction": "include"
-    }
+    },
+    "mailboxes": [
+        {
+            "id": "primary",
+            "email": "GMAIL_Email_Address",
+            "labelIds": ["UNREAD"],
+            "filterAction": "include",
+            "webhookUrl": "https://webhook.for.this.mailbox",
+            "storage": {
+                "folderName": "primary/"
+            }
+        },
+        {
+            "id": "support",
+            "email": "SUPPORT_GMAIL_Address",
+            "labelIds": ["UNREAD"],
+            "filterAction": "include",
+            "webhookUrl": "https://webhook.for.support",
+            "storage": {
+                "folderName": "support/"
+            }
+        }
+    ]
 }

@@ -1,4 +1,5 @@
 const gmail = require("../gmail");
+const mailboxes = require("../mailboxes");
 
 /**
  * A Google Cloud Function with an HTTP trigger signature, Used to stop Gmail from sending Pub/Sub Notifications by calling the Gmail API "users.stop", more details in link below.
@@ -9,15 +10,37 @@ const gmail = require("../gmail");
  */
 exports.stopWatch = async (req, res) => {
     try {
-      const authGmail = await gmail.getAuthenticatedGmail();
-      const resp = await authGmail.users.stop({
-        userId: 'me',
-      });
-      res.status(200).send("Successfully Stop Watching - " + JSON.stringify(resp));
+      const targetMailboxes = resolveRequestedMailboxes(req);
+      if (targetMailboxes.length === 0) {
+        res.status(400).send("No mailbox found to stop watch");
+        return;
+      }
+
+      const responses = [];
+      for (const mailbox of targetMailboxes) {
+        const authGmail = await gmail.getAuthenticatedGmail(mailbox.id);
+        const resp = await authGmail.users.stop({
+          userId: 'me',
+        });
+        responses.push({
+          mailboxId: mailbox.id,
+          email: mailbox.email,
+          response: resp.data || resp
+        });
+      }
+      res.status(200).send("Successfully Stopped Watching - " + JSON.stringify(responses));
     }
     catch(ex) {
       res.status(500).send("Error occured: " + ex);
       throw new Error("Error occured while stopping gmail watch: " + ex);
     }
   };
-  
+
+function resolveRequestedMailboxes(req) {
+  const requestedMailboxId = (req && req.query && req.query.mailboxId) || (req && req.body && req.body.mailboxId);
+  if (requestedMailboxId && requestedMailboxId !== "all") {
+    const mailbox = mailboxes.getMailboxById(requestedMailboxId) || mailboxes.getMailboxByEmail(requestedMailboxId);
+    return mailbox ? [mailbox] : [];
+  }
+  return mailboxes.getMailboxes();
+}
