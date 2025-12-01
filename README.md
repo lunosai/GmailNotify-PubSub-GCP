@@ -75,7 +75,7 @@ For you to quickly deploy this application, you only need to provide the followi
 
 1. `external.webhookUrl` - a full qualified URL to an external service that accepts an `Post` request with the body
     ```
-    { text: 'email_text_here' }
+    { emailAddress: 'mailbox@example.com' }
     ```
    - Optional: set `external.webhookSecret` if you want outgoing notifications to include an `X-Signature` HMAC of the JSON payload (applied to all mailboxes).
 2. `gcp.pubsub.topic` - the full topic name as provided in the Cloud Pub/Sub Dashboard.
@@ -122,11 +122,13 @@ Use the `mailboxes` array in `appconfig.json` to register each Gmail account you
 
 - If you omit `mailboxes`, the app will fall back to the legacy single-mailbox values (`gcp.auth.subject`, `gmail.labelsIds`, `gmail.filterAction`, and `external.webhookUrl`).
 - Webhook destination and signature secret come from `external.*` and apply to every mailbox.
-- Storage artifacts (history/debug/email payloads) are written under `gcp.storage.rootFolderName + mailboxes[n].storage.folderName`, so each mailbox stays isolated.
+- Storage settings remain for compatibility, but when forwarding only `emailAddress` the function no longer writes history/debug/email payloads to Cloud Storage.
+- The Pub/Sub handler forwards only the `emailAddress` from the incoming Gmail notification to your webhook; it does not fetch or include message contents.
 
 ### Webhook signature
 - If `external.webhookSecret` is set, outgoing webhook requests include an `X-Signature` header containing an HMAC-SHA256 hex digest of the JSON payload (the same secret is used for all mailboxes).
 - When no secret is provided, the header is omitted and requests are sent unsigned.
+- Payload shape: `{ "emailAddress": "<mailbox email from Pub/Sub payload>" }` (only field).
 
 ### Starting and stopping watch per mailbox
 
