@@ -37,9 +37,9 @@ exports.stopWatch = async (req, res) => {
   };
 
 function resolveRequestedMailboxes(req) {
-  const requestedMailboxId = (req && req.query && req.query.mailboxId) || (req && req.body && req.body.mailboxId);
-  if (requestedMailboxId && requestedMailboxId !== "all") {
-    const mailbox = mailboxes.getMailboxByEmail(requestedMailboxId) || mailboxes.getMailboxById(requestedMailboxId);
+  const requestedEmail = (req && req.query && req.query.email) || (req && req.body && req.body.email);
+  if (requestedEmail && requestedEmail !== "all") {
+    const mailbox = mailboxes.getMailboxByEmail(requestedEmail) || mailboxes.getMailboxById(requestedEmail);
     return mailbox ? [mailbox] : [];
   }
   return mailboxes.getMailboxes();

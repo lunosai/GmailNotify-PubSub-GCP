@@ -132,12 +132,12 @@ Use the `mailboxes` array in `appconfig.json` to register each Gmail account you
 
 ### Starting and stopping watch per mailbox
 
-- Start watch for one mailbox: `GET https://<function-url>/startWatch?mailboxId=you@example.com`
-- Start watch for all configured mailboxes: `GET https://<function-url>/startWatch?mailboxId=all` (or omit the parameter to start all).
-- Stop watch for one mailbox: `GET https://<function-url>/stopWatch?mailboxId=support@example.com`
-- Stop watch for all configured mailboxes: `GET https://<function-url>/stopWatch?mailboxId=all` (or omit the parameter to stop all).
+- Start watch for one mailbox: `GET https://<function-url>/startWatch?email=you@example.com`
+- Start watch for all configured mailboxes: `GET https://<function-url>/startWatch?email=all` (or omit the parameter to start all).
+- Stop watch for one mailbox: `GET https://<function-url>/stopWatch?email=support@example.com`
+- Stop watch for all configured mailboxes: `GET https://<function-url>/stopWatch?email=all` (or omit the parameter to stop all).
 
-The `mailboxId` parameter accepts:
+The `email` parameter accepts:
 - **Email address** (e.g., `you@example.com`) - searches by email first
 - **Mailbox ID** (e.g., `primary`, `support`) - fallback if email not found
 - **`all`** - applies to all configured mailboxes
