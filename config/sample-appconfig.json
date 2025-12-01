@@ -30,8 +30,6 @@
             "email": "GMAIL_Email_Address",
             "labelIds": ["UNREAD"],
             "filterAction": "include",
-            "webhookUrl": "https://webhook.for.this.mailbox",
-            "webhookSecret": "mailbox_specific_secret_if_needed",
             "storage": {
                 "folderName": "primary/"
             }
@@ -41,8 +39,6 @@
             "email": "SUPPORT_GMAIL_Address",
             "labelIds": ["UNREAD"],
             "filterAction": "include",
-            "webhookUrl": "https://webhook.for.support",
-            "webhookSecret": "another_mailbox_secret",
             "storage": {
                 "folderName": "support/"
             }

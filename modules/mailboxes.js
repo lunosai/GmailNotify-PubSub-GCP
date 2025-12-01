@@ -2,8 +2,6 @@ const appConfig = require("../config/appconfig.json");
 
 const defaultLabels = (appConfig.gmail && appConfig.gmail.labelsIds) || [];
 const defaultFilterAction = appConfig.gmail && appConfig.gmail.filterAction;
-const defaultWebhookUrl = appConfig.external && appConfig.external.webhookUrl;
-const defaultWebhookSecret = appConfig.external && appConfig.external.webhookSecret;
 
 let cachedMailboxes = null;
 
@@ -16,6 +14,8 @@ function ensureTrailingSlash(value) {
 
 function normalizeMailbox(mailbox, index) {
     const normalized = { ...mailbox };
+    delete normalized.webhookUrl;
+    delete normalized.webhookSecret;
     normalized.email = normalized.email || normalized.subject;
     if (!normalized.email) {
         throw new Error(`Mailbox at index ${index} is missing an email/subject`);
@@ -23,8 +23,6 @@ function normalizeMailbox(mailbox, index) {
     normalized.id = normalized.id || normalized.email.toLowerCase().replace(/[^a-z0-9]/g, "_");
     normalized.labelIds = normalized.labelIds || defaultLabels;
     normalized.filterAction = normalized.filterAction || defaultFilterAction;
-    normalized.webhookUrl = normalized.webhookUrl || defaultWebhookUrl;
-    normalized.webhookSecret = normalized.webhookSecret || defaultWebhookSecret;
     normalized.storage = normalized.storage || {};
     normalized.storage.rootFolderName = normalized.storage.rootFolderName || appConfig.gcp.storage.rootFolderName || "";
     normalized.storage.folderName = normalized.storage.folderName || normalized.id;
@@ -50,8 +48,7 @@ function loadMailboxes() {
                     id: "default",
                     email: appConfig.gcp.auth.subject,
                     labelIds: defaultLabels,
-                    filterAction: defaultFilterAction,
-                    webhookUrl: defaultWebhookUrl
+                    filterAction: defaultFilterAction
                 },
                 0
             )

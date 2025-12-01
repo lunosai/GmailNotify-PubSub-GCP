@@ -77,7 +77,7 @@ For you to quickly deploy this application, you only need to provide the followi
     ```
     { text: 'email_text_here' }
     ```
-   - Optional: set `external.webhookSecret` if you want outgoing notifications to include an `X-Signature` HMAC of the JSON payload.
+   - Optional: set `external.webhookSecret` if you want outgoing notifications to include an `X-Signature` HMAC of the JSON payload (applied to all mailboxes).
 2. `gcp.pubsub.topic` - the full topic name as provided in the Cloud Pub/Sub Dashboard.
 3. `gcp.storage.bucketName` - the full bucket name as provided in the Cloud Storage Dashboard.
 4. `mailboxes` - configure at least one mailbox entry (see below).
@@ -103,8 +103,6 @@ Use the `mailboxes` array in `appconfig.json` to register each Gmail account you
       "email": "you@example.com",
       "labelIds": ["UNREAD"],
       "filterAction": "include",
-      "webhookUrl": "https://webhook.for.this.mailbox",
-      "webhookSecret": "optional_mailbox_secret",
       "storage": {
         "folderName": "primary/"
       }
@@ -114,8 +112,6 @@ Use the `mailboxes` array in `appconfig.json` to register each Gmail account you
       "email": "support@example.com",
       "labelIds": ["UNREAD", "IMPORTANT"],
       "filterAction": "include",
-      "webhookUrl": "https://webhook.for.support",
-      "webhookSecret": "optional_mailbox_secret",
       "storage": {
         "folderName": "support/"
       }
@@ -125,10 +121,11 @@ Use the `mailboxes` array in `appconfig.json` to register each Gmail account you
 ```
 
 - If you omit `mailboxes`, the app will fall back to the legacy single-mailbox values (`gcp.auth.subject`, `gmail.labelsIds`, `gmail.filterAction`, and `external.webhookUrl`).
+- Webhook destination and signature secret come from `external.*` and apply to every mailbox.
 - Storage artifacts (history/debug/email payloads) are written under `gcp.storage.rootFolderName + mailboxes[n].storage.folderName`, so each mailbox stays isolated.
 
 ### Webhook signature
-- If `external.webhookSecret` (or `mailboxes[].webhookSecret`) is set, outgoing webhook requests include an `X-Signature` header containing an HMAC-SHA256 hex digest of the JSON payload.
+- If `external.webhookSecret` is set, outgoing webhook requests include an `X-Signature` header containing an HMAC-SHA256 hex digest of the JSON payload (the same secret is used for all mailboxes).
 - When no secret is provided, the header is omitted and requests are sent unsigned.
 
 ### Starting and stopping watch per mailbox

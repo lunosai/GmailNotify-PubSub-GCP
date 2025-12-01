@@ -246,12 +246,12 @@ async function processEmail(mailbox, mailboxPaths, msg, messageId) {
  * @param {String} text The text data that needs to be send via HTTP Post to the external url (WebHook)
  */
 async function sendNotification(mailbox, text) {
-    const webhookUrl = mailbox.webhookUrl || (appConfig.external && appConfig.external.webhookUrl);
+    const webhookUrl = appConfig.external && appConfig.external.webhookUrl;
     if (!webhookUrl) {
         console.warn("Webhook URL not configured; skipping notification for mailbox: " + mailbox.id);
         return;
     }
-    const webhookSecret = mailbox.webhookSecret || (appConfig.external && appConfig.external.webhookSecret);
+    const webhookSecret = appConfig.external && appConfig.external.webhookSecret;
     const payload = JSON.stringify({ text: text });
     const headers = {
         "Content-Type": "application/json"
