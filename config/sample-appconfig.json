@@ -1,6 +1,7 @@
 {
     "external":{
-        "webhookUrl": "A_URL_To_Make_The_Post_Call_To"
+        "webhookUrl": "A_URL_To_Make_The_Post_Call_To",
+        "webhookSecret": "A_Shared_Secret_For_HMAC"
     },
     "gcp":{
         "pubsub":{
@@ -30,6 +31,7 @@
             "labelIds": ["UNREAD"],
             "filterAction": "include",
             "webhookUrl": "https://webhook.for.this.mailbox",
+            "webhookSecret": "mailbox_specific_secret_if_needed",
             "storage": {
                 "folderName": "primary/"
             }
@@ -40,6 +42,7 @@
             "labelIds": ["UNREAD"],
             "filterAction": "include",
             "webhookUrl": "https://webhook.for.support",
+            "webhookSecret": "another_mailbox_secret",
             "storage": {
                 "folderName": "support/"
             }

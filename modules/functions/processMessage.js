@@ -1,3 +1,4 @@
+const crypto = require("crypto");
 const appConfig = require("../../config/appconfig.json");
 const storage = require("../storage");
 const gmail = require("../gmail");
@@ -250,13 +251,25 @@ async function sendNotification(mailbox, text) {
         console.warn("Webhook URL not configured; skipping notification for mailbox: " + mailbox.id);
         return;
     }
+    const webhookSecret = mailbox.webhookSecret || (appConfig.external && appConfig.external.webhookSecret);
+    const payload = JSON.stringify({ text: text });
+    const headers = {
+        "Content-Type": "application/json"
+    };
+
+    if (webhookSecret) {
+        const signature = crypto
+            .createHmac("sha256", webhookSecret)
+            .update(payload, "utf8")
+            .digest("hex");
+        headers["X-Signature"] = signature;
+    }
+
     const p = require('phin');
     await p({
         url: webhookUrl,
         method: 'POST',
-        headers: {
-            "Content-type": "application/json"
-        },
-        data: { text: text }
+        headers,
+        data: payload
     });
 }

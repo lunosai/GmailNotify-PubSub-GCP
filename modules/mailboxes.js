@@ -3,6 +3,7 @@ const appConfig = require("../config/appconfig.json");
 const defaultLabels = (appConfig.gmail && appConfig.gmail.labelsIds) || [];
 const defaultFilterAction = appConfig.gmail && appConfig.gmail.filterAction;
 const defaultWebhookUrl = appConfig.external && appConfig.external.webhookUrl;
+const defaultWebhookSecret = appConfig.external && appConfig.external.webhookSecret;
 
 let cachedMailboxes = null;
 
@@ -23,6 +24,7 @@ function normalizeMailbox(mailbox, index) {
     normalized.labelIds = normalized.labelIds || defaultLabels;
     normalized.filterAction = normalized.filterAction || defaultFilterAction;
     normalized.webhookUrl = normalized.webhookUrl || defaultWebhookUrl;
+    normalized.webhookSecret = normalized.webhookSecret || defaultWebhookSecret;
     normalized.storage = normalized.storage || {};
     normalized.storage.rootFolderName = normalized.storage.rootFolderName || appConfig.gcp.storage.rootFolderName || "";
     normalized.storage.folderName = normalized.storage.folderName || normalized.id;
