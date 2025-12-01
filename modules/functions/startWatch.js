@@ -43,7 +43,7 @@ exports.startWatch = async (req, res) => {
 function resolveRequestedMailboxes(req) {
   const requestedMailboxId = (req && req.query && req.query.mailboxId) || (req && req.body && req.body.mailboxId);
   if (requestedMailboxId && requestedMailboxId !== "all") {
-    const mailbox = mailboxes.getMailboxById(requestedMailboxId) || mailboxes.getMailboxByEmail(requestedMailboxId);
+    const mailbox = mailboxes.getMailboxByEmail(requestedMailboxId) || mailboxes.getMailboxById(requestedMailboxId);
     return mailbox ? [mailbox] : [];
   }
   return mailboxes.getMailboxes();
