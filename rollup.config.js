@@ -5,7 +5,6 @@ import json from '@rollup/plugin-json';
 import commonjs from '@rollup/plugin-commonjs';
 import generatePackageJson from 'rollup-plugin-generate-package-json';
 import clear from 'rollup-plugin-clear';
-import copy from 'rollup-plugin-copy';
 import execute from 'rollup-plugin-execute';
 
 export default defineConfig ({
@@ -29,11 +28,6 @@ export default defineConfig ({
         clear({
             targets: ['publish']
         }),
-        copy({
-            targets: [
-              { src: 'credentials/google-key.json', dest: 'publish/temp/credentials' }
-            ]
-          }),
         execute("cd publish/temp; sleep 0.1; zip -r ../GNFunc_v" + version.replace(".","-").replace(/\./g,"") + ".zip ./*; cd ..;sleep 0.1; rm -r ./temp")
     ]
   });

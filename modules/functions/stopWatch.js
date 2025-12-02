@@ -1,5 +1,4 @@
 const gmail = require("../gmail");
-const mailboxes = require("../mailboxes");
 
 /**
  * A Google Cloud Function with an HTTP trigger signature, Used to stop Gmail from sending Pub/Sub Notifications by calling the Gmail API "users.stop", more details in link below.
@@ -10,25 +9,28 @@ const mailboxes = require("../mailboxes");
  */
 exports.stopWatch = async (req, res) => {
     try {
-      const targetMailboxes = resolveRequestedMailboxes(req);
-      if (targetMailboxes.length === 0) {
-        res.status(400).send("No mailbox found to stop watch");
+      if ((req.method || "").toUpperCase() !== "POST") {
+        res.status(405).send("Method Not Allowed; use POST");
         return;
       }
 
-      const responses = [];
-      for (const mailbox of targetMailboxes) {
-        const authGmail = await gmail.getAuthenticatedGmail(mailbox.id);
-        const resp = await authGmail.users.stop({
-          userId: 'me',
-        });
-        responses.push({
-          mailboxId: mailbox.id,
-          email: mailbox.email,
-          response: resp.data || resp
-        });
+      const { email, accessToken, error } = resolveRequest(req);
+      if (error) {
+        res.status(400).send(error);
+        return;
       }
-      res.status(200).send("Successfully Stopped Watching - " + JSON.stringify(responses));
+
+      const authGmail = await gmail.getAuthenticatedGmail(email, accessToken);
+      const resp = await authGmail.users.stop({
+        userId: 'me',
+      });
+      res.status(200).json({
+        message: "Successfully Stopped Watching",
+        result: [{
+          email,
+          response: resp.data || resp
+        }]
+      });
     }
     catch(ex) {
       res.status(500).send("Error occured: " + ex);
@@ -36,11 +38,12 @@ exports.stopWatch = async (req, res) => {
     }
   };
 
-function resolveRequestedMailboxes(req) {
-  const requestedEmail = (req && req.query && req.query.email) || (req && req.body && req.body.email);
-  if (requestedEmail && requestedEmail !== "all") {
-    const mailbox = mailboxes.getMailboxByEmail(requestedEmail) || mailboxes.getMailboxById(requestedEmail);
-    return mailbox ? [mailbox] : [];
+function resolveRequest(req) {
+  const body = (req && req.body) || {};
+  const email = (body.email || "").toString().trim();
+  const accessToken = body.accessToken;
+  if (!email || !accessToken) {
+    return { error: "email and accessToken are required" };
   }
-  return mailboxes.getMailboxes();
+  return { email, accessToken };
 }

@@ -1,66 +1,59 @@
 const appConfig = require("../config/appconfig.json");
-const mailboxes = require("./mailboxes");
 const { google } = require('googleapis');
 
-const GoogleKeyFile = appConfig.gcp.auth.googleKeyFilePath;
-const SCOPES = appConfig.gmail.scopes;
-
-const JWT = google.auth.JWT;
-const AuthenticatedGmailByMailbox = new Map();
-
-function resolveMailbox(mailboxIdOrEmail) {
-    const mailbox = mailboxes.getMailboxById(mailboxIdOrEmail) || mailboxes.getMailboxByEmail(mailboxIdOrEmail) || mailboxes.getDefaultMailbox();
-    if (!mailbox) {
-        throw new Error(`Mailbox not configured for identifier: ${mailboxIdOrEmail || "unknown"}`);
+function resolveEnv(envName, fallback) {
+    if (envName && process.env[envName]) {
+        return process.env[envName];
     }
-    return mailbox;
+    return fallback;
 }
 
+const clientId = resolveEnv(
+    appConfig.gcp && appConfig.gcp.auth && appConfig.gcp.auth.clientIdEnv,
+    appConfig.gcp && appConfig.gcp.auth && appConfig.gcp.auth.clientId
+);
+const clientSecret = resolveEnv(
+    appConfig.gcp && appConfig.gcp.auth && appConfig.gcp.auth.clientSecretEnv,
+    appConfig.gcp && appConfig.gcp.auth && appConfig.gcp.auth.clientSecret
+);
+
 /**
- * Gets the authenticated Gmail API for the requested mailbox. Caches per mailbox to reuse JWT sessions.
+ * Gets the authenticated Gmail API for the requested mailbox using provided access/refresh tokens.
  *
- * @param {String} mailboxIdOrEmail Identifier to locate mailbox config.
+ * @param {String} mailboxEmail Mailbox email
+ * @param {String} accessToken Gmail OAuth access token
  * @return {google.gmail} with the authClient attached and ready to call Gmail API
  */
-async function getAuthenticatedGmail(mailboxIdOrEmail) {
-    const mailbox = resolveMailbox(mailboxIdOrEmail);
-    const cacheKey = mailbox.id;
-    try {
-        if (AuthenticatedGmailByMailbox.has(cacheKey)) {
-            return AuthenticatedGmailByMailbox.get(cacheKey);
-        }
-        const authClient = new JWT({
-            keyFile: GoogleKeyFile,
-            scopes: SCOPES,
-            subject: mailbox.email
-        });
-        await authClient.authorize();
-        const gmailClient = google.gmail({
-            auth: authClient,
-            version: 'v1'
-        });
-        AuthenticatedGmailByMailbox.set(cacheKey, gmailClient);
-        return gmailClient;
+async function getAuthenticatedGmail(mailboxEmail, accessToken) {
+    if (!mailboxEmail) {
+        throw new Error("Mailbox email is required");
     }
-    catch (ex) {
-        throw ex;
+    if (!accessToken) {
+        throw new Error("Mailbox accessToken is required");
     }
+    const oauth2Client = new google.auth.OAuth2(clientId, clientSecret);
+    oauth2Client.setCredentials({
+        access_token: accessToken
+    });
+    return google.gmail({
+        auth: oauth2Client,
+        version: 'v1'
+    });
 }
 
 exports.getAuthenticatedGmail = getAuthenticatedGmail;
-exports.resolveMailbox = resolveMailbox;
 
 /**
  * Performs the Gmail API call to users.history.list Endpoint for a mailbox.
  *
- * @param {String} mailboxId Mailbox identifier
+ * @param {String} mailboxEmail Mailbox email
  * @param {*} options Query parameters as per the Gmail API documentation link below.
  * @return {Promise} A Promise that will resolve with the history data based on the options provided
  * @see {@link https://developers.google.com/gmail/api/reference/rest/v1/users.history/list}
  */
-exports.getHistoryList = async (mailboxId, options) => {
+exports.getHistoryList = async (mailboxEmail, accessToken, options) => {
     try {
-        const gmailClient = await getAuthenticatedGmail(mailboxId);
+        const gmailClient = await getAuthenticatedGmail(mailboxEmail, accessToken);
         return gmailClient.users.history.list({
             userId: 'me',
             ...options
@@ -75,14 +68,14 @@ exports.getHistoryList = async (mailboxId, options) => {
 /**
  * Performs the Gmail API call to users.messages.get Endpoint for a mailbox.
  *
- * @param {String} mailboxId Mailbox identifier
+ * @param {String} mailboxEmail Mailbox email
  * @param {String} messageId  The message ID for which details (data) is required
  * @return {Promise} A Promise that will resolve with the message details (data) for the given message ID
  * @see {@link https://developers.google.com/gmail/api/reference/rest/v1/users.messages/get}
  */
-exports.getMessageData = async (mailboxId, messageId) => {
+exports.getMessageData = async (mailboxEmail, accessToken, messageId) => {
     try {
-        const gmailClient = await getAuthenticatedGmail(mailboxId);
+        const gmailClient = await getAuthenticatedGmail(mailboxEmail, accessToken);
         return gmailClient.users.messages.get({
             userId: 'me',
             id: messageId

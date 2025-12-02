@@ -1,47 +1,18 @@
 {
     "external":{
-        "webhookUrl": "A_URL_To_Make_The_Post_Call_To",
-        "webhookSecret": "A_Shared_Secret_For_HMAC"
+        "webhookUrlEnv": "WEBHOOK_URL",
+        "webhookSecretEnv": "WEBHOOK_SECRET"
     },
     "gcp":{
         "pubsub":{
-            "topic": "Topic_Path"
-        },
-        "storage": {
-            "bucketName": "Bucket_Name_Only",
-            "rootFolderName": "",
-            "debugFolderName": "debug/",
-            "emailsFolderName": "emails/",
-            "historyFilename": "history.json"
+            "topicEnv": "PUBSUB_TOPIC",
+            "topic": ""
         },
         "auth":{
-            "googleKeyFilePath": "credentials/google-key.json",
-            "subject": ""
+            "clientIdEnv": "GOOGLE_CLIENT_ID",
+            "clientSecretEnv": "GOOGLE_CLIENT_SECRET",
+            "clientId": "",
+            "clientSecret": ""
         }
-    },
-    "gmail": {
-        "scopes": ["https://www.googleapis.com/auth/gmail.readonly"],
-        "labelsIds": ["UNREAD"],
-        "filterAction": "include"
-    },
-    "mailboxes": [
-        {
-            "id": "primary",
-            "email": "GMAIL_Email_Address",
-            "labelIds": ["UNREAD"],
-            "filterAction": "include",
-            "storage": {
-                "folderName": "primary/"
-            }
-        },
-        {
-            "id": "support",
-            "email": "SUPPORT_GMAIL_Address",
-            "labelIds": ["UNREAD"],
-            "filterAction": "include",
-            "storage": {
-                "folderName": "support/"
-            }
-        }
-    ]
+    }
 }

@@ -1,6 +1,5 @@
 const crypto = require("crypto");
 const appConfig = require("../../config/appconfig.json");
-const mailboxes = require("../mailboxes");
 
 /**
  * A Google Cloud Function with an Pub/Sub trigger signature.
@@ -19,49 +18,28 @@ exports.ProcessMessage = async (event, context) => {
             return;
         }
 
-        const mailbox = resolveMailboxFromMessage(msgObj);
-        await sendNotification(mailbox, emailAddress);
-        console.debug(`Function execution completed for mailbox ${mailbox.id} (${emailAddress})`);
+        await sendNotification(emailAddress);
+        console.debug(`Function execution completed for mailbox ${emailAddress}`);
     }
     catch (ex) {
         throw new Error("Error occured while processing message: " + ex);
     }
 };
 
-function resolveMailboxFromMessage(msgObj) {
-    const emailAddress = msgObj.emailAddress || msgObj.email;
-    if (emailAddress) {
-        const mailboxFromEmail = mailboxes.getMailboxByEmail(emailAddress);
-        if (mailboxFromEmail) {
-            return mailboxFromEmail;
-        }
-    }
-    if (msgObj.mailboxId) {
-        const mailboxFromId = mailboxes.getMailboxById(msgObj.mailboxId);
-        if (mailboxFromId) {
-            return mailboxFromId;
-        }
-    }
-    const defaultMailbox = mailboxes.getDefaultMailbox();
-    if (defaultMailbox) {
-        return defaultMailbox;
-    }
-    throw new Error(`No mailbox configuration found for message email: ${emailAddress || "unknown"}`);
-}
-
 /**
  * Sends the mailbox email address to the configured webhook.
  *
- * @param {Object} mailbox Mailbox configuration object
  * @param {String} emailAddress The email address received in the Pub/Sub payload
  */
-async function sendNotification(mailbox, emailAddress) {
-    const webhookUrl = appConfig.external && appConfig.external.webhookUrl;
+async function sendNotification(emailAddress) {
+    const webhookUrlEnv = appConfig.external && appConfig.external.webhookUrlEnv;
+    const webhookUrl = webhookUrlEnv ? process.env[webhookUrlEnv] : null;
     if (!webhookUrl) {
-        console.warn("Webhook URL not configured; skipping notification for mailbox: " + mailbox.id);
+        console.warn("Webhook URL not configured; skipping notification for mailbox: " + emailAddress);
         return;
     }
-    const webhookSecret = appConfig.external && appConfig.external.webhookSecret;
+    const webhookSecretEnv = appConfig.external && appConfig.external.webhookSecretEnv;
+    const webhookSecret = webhookSecretEnv ? process.env[webhookSecretEnv] : null;
     const payload = JSON.stringify({ emailAddress });
     const headers = {
         "Content-Type": "application/json"

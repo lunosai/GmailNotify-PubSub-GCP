@@ -11,3 +11,6 @@
 
 # ignore published files
 publish/*
+
+# environment variables
+*.env

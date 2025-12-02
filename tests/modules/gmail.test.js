@@ -1,18 +1,27 @@
-const appConfig = require("../../config/appconfig.json");
 const gmail = require("../../modules/gmail");
-const mailboxes = require("../../modules/mailboxes");
 
-const mailbox = mailboxes.getDefaultMailbox() || mailboxes.getMailboxes()[0];
+const runLiveTests = process.env.RUN_GMAIL_TESTS === "true";
+const testEmail = process.env.GMAIL_TEST_EMAIL;
+const testAccessToken = process.env.GMAIL_TEST_ACCESS_TOKEN;
 
 describe("Testing Gmail API Functionality", () => {
 
-    const maybeTest = mailbox ? test : test.skip;
+    const maybeTest = runLiveTests ? test : test.skip;
 
     maybeTest("Fetch history list", async () => {
-        const resp = await gmail.getHistoryList(mailbox.id, {
-            startHistoryId: "12401428",
+        if (!testEmail || !testAccessToken) {
+            console.warn("Skipping test - GMAIL_TEST_EMAIL/GMAIL_TEST_ACCESS_TOKEN not set");
+            return;
+        }
+        const startHistoryId = process.env.GMAIL_START_HISTORY_ID;
+        if (!startHistoryId) {
+            console.warn("Skipping test - GMAIL_START_HISTORY_ID env var not set");
+            return;
+        }
+        const resp = await gmail.getHistoryList(testEmail, testAccessToken, {
+            startHistoryId,
             userId: 'me',
-            labelId: mailbox.labelIds && mailbox.labelIds.length > 0 ? mailbox.labelIds[0] : undefined,
+            labelId: "INBOX",
             historyTypes: ["messageAdded","labelAdded"]
         });
         expect(resp.status).toBe(200);
@@ -24,8 +33,16 @@ describe("Testing Gmail API Functionality", () => {
     });
 
     maybeTest("Fetch message data", async () => {
-        const messageId = "17bce3fb8561fefb";
-        const resp = await gmail.getMessageData(mailbox.id, messageId);
+        if (!testEmail || !testAccessToken) {
+            console.warn("Skipping test - GMAIL_TEST_EMAIL/GMAIL_TEST_ACCESS_TOKEN not set");
+            return;
+        }
+        const messageId = process.env.GMAIL_TEST_MESSAGE_ID;
+        if (!messageId) {
+            console.warn("Skipping test - GMAIL_TEST_MESSAGE_ID env var not set");
+            return;
+        }
+        const resp = await gmail.getMessageData(testEmail, testAccessToken, messageId);
         expect(resp.status).toBe(200);
         console.log(resp.data);
         expect(resp.data).toMatchObject(expect.objectContaining({

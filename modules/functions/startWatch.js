@@ -1,6 +1,12 @@
 const appConfig = require("../../config/appconfig.json");
 const gmail = require("../gmail");
-const mailboxes = require("../mailboxes");
+
+function resolveEnv(envName, fallback) {
+    if (envName && process.env[envName]) {
+        return process.env[envName];
+    }
+    return fallback;
+}
 
 /**
  * A Google Cloud Function with an HTTP trigger signature, Used to start Gmail Pub/Sub Notifications by calling the Gmail API "users.watch", more details in link below.
@@ -11,40 +17,54 @@ const mailboxes = require("../mailboxes");
  */
 exports.startWatch = async (req, res) => {
     try {
-      const targetMailboxes = resolveRequestedMailboxes(req);
-      if (targetMailboxes.length === 0) {
-        res.status(400).send("No mailbox found to start watch");
+      if ((req.method || "").toUpperCase() !== "POST") {
+        res.status(405).send("Method Not Allowed; use POST");
         return;
       }
 
-      const responses = [];
-      for (const mailbox of targetMailboxes) {
-        const authGmail = await gmail.getAuthenticatedGmail(mailbox.id);
-        const resp = await authGmail.users.watch({
-          userId: 'me',
-          topicName: appConfig.gcp.pubsub.topic,
-          labelIds: mailbox.labelIds && mailbox.labelIds.length > 0 ? mailbox.labelIds : undefined,
-          labelFilterAction: mailbox.filterAction
-        });
-        responses.push({
-          mailboxId: mailbox.id,
-          email: mailbox.email,
-          response: resp.data || resp
-        });
+      const { email, accessToken, error } = resolveRequest(req);
+      if (error) {
+        res.status(400).send(error);
+        return;
       }
-      res.status(200).send("Successfully Started Watching - " + JSON.stringify(responses));
+
+      const topicName = resolveEnv(appConfig.gcp && appConfig.gcp.pubsub && appConfig.gcp.pubsub.topicEnv, appConfig.gcp && appConfig.gcp.pubsub && appConfig.gcp.pubsub.topic);
+      if (!topicName) {
+        res.status(500).send("Pub/Sub topic is not configured");
+        return;
+      }
+
+      const authGmail = await gmail.getAuthenticatedGmail(email, accessToken);
+      const resp = await authGmail.users.watch({
+        userId: 'me',
+        topicName,
+        labelIds: ["INBOX"]
+      });
+
+      const respData = resp && resp.data ? resp.data : {};
+      const expiresInMs = respData.expiration ? Math.max(0, Number(respData.expiration) - Date.now()) : null;
+
+      res.status(200).json({
+        message: "Successfully Started Watching",
+        result: [{
+          email,
+          expiresInMs,
+          response: respData
+        }]
+      });
     }
     catch(ex) {
-      res.status(500).send("Error occured: " + ex);
-      throw new Error("Error occured while starting gmail watch: " + ex);
+      res.status(500).send("Error occurred: " + ex);
+      throw new Error("Error occurred while starting gmail watch: " + ex);
     }
   };
 
-function resolveRequestedMailboxes(req) {
-  const requestedEmail = (req && req.query && req.query.email) || (req && req.body && req.body.email);
-  if (requestedEmail && requestedEmail !== "all") {
-    const mailbox = mailboxes.getMailboxByEmail(requestedEmail) || mailboxes.getMailboxById(requestedEmail);
-    return mailbox ? [mailbox] : [];
+function resolveRequest(req) {
+  const body = (req && req.body) || {};
+  const email = (body.email || "").toString().trim();
+  const accessToken = body.accessToken;
+  if (!email || !accessToken) {
+    return { error: "email and accessToken are required" };
   }
-  return mailboxes.getMailboxes();
+  return { email, accessToken };
 }
