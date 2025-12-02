@@ -1,12 +1,7 @@
 const appConfig = require("../../config/appconfig.json");
 const gmail = require("../gmail");
 
-function resolveEnv(envName, fallback) {
-    if (envName && process.env[envName]) {
-        return process.env[envName];
-    }
-    return fallback;
-}
+const topicName = process.env[appConfig.gcp.pubsub.topic];
 
 /**
  * A Google Cloud Function with an HTTP trigger signature, Used to start Gmail Pub/Sub Notifications by calling the Gmail API "users.watch", more details in link below.
@@ -28,13 +23,12 @@ exports.startWatch = async (req, res) => {
         return;
       }
 
-      const topicName = resolveEnv(appConfig.gcp && appConfig.gcp.pubsub && appConfig.gcp.pubsub.topicEnv, appConfig.gcp && appConfig.gcp.pubsub && appConfig.gcp.pubsub.topic);
       if (!topicName) {
         res.status(500).send("Pub/Sub topic is not configured");
         return;
       }
 
-      const authGmail = await gmail.getAuthenticatedGmail(email, accessToken);
+      const authGmail = await gmail.getAuthenticatedGmail(accessToken);
       const resp = await authGmail.users.watch({
         userId: 'me',
         topicName,

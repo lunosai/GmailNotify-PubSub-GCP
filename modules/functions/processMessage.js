@@ -1,6 +1,10 @@
 const crypto = require("crypto");
 const appConfig = require("../../config/appconfig.json");
 
+const webhookConfig = (appConfig.external) || {};
+const webhookUrl = process.env[webhookConfig.webhookUrl];
+const webhookSecret = process.env[webhookConfig.webhookSecret];
+
 /**
  * A Google Cloud Function with an Pub/Sub trigger signature.
  *
@@ -32,26 +36,20 @@ exports.ProcessMessage = async (event, context) => {
  * @param {String} emailAddress The email address received in the Pub/Sub payload
  */
 async function sendNotification(emailAddress) {
-    const webhookUrlEnv = appConfig.external && appConfig.external.webhookUrlEnv;
-    const webhookUrl = webhookUrlEnv ? process.env[webhookUrlEnv] : null;
-    if (!webhookUrl) {
-        console.warn("Webhook URL not configured; skipping notification for mailbox: " + emailAddress);
+    if (!webhookUrl || !webhookSecret) {
+        console.warn("Webhook URL or secret not configured; skipping notification for mailbox: " + emailAddress);
         return;
     }
-    const webhookSecretEnv = appConfig.external && appConfig.external.webhookSecretEnv;
-    const webhookSecret = webhookSecretEnv ? process.env[webhookSecretEnv] : null;
     const payload = JSON.stringify({ emailAddress });
     const headers = {
         "Content-Type": "application/json"
     };
 
-    if (webhookSecret) {
-        const signature = crypto
-            .createHmac("sha256", webhookSecret)
-            .update(payload, "utf8")
-            .digest("hex");
-        headers["X-Signature"] = signature;
-    }
+    const signature = crypto
+        .createHmac("sha256", webhookSecret)
+        .update(payload, "utf8")
+        .digest("hex");
+    headers["X-Signature"] = signature;
 
     const p = require('phin');
     await p({

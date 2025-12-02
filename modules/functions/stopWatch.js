@@ -20,7 +20,7 @@ exports.stopWatch = async (req, res) => {
         return;
       }
 
-      const authGmail = await gmail.getAuthenticatedGmail(email, accessToken);
+      const authGmail = await gmail.getAuthenticatedGmail(accessToken);
       const resp = await authGmail.users.stop({
         userId: 'me',
       });

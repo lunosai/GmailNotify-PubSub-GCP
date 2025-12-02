@@ -21,7 +21,7 @@ The code is structured for clean and simple implementation as well as maintenanc
 
 ### Primary Folder's Explanation
 * `/config` - contains the `appconfig.json` file (renamed from `sample-appconfig.json` template file) after putting in the values.
-* `/credentials` - optional; contains `google-key.json` only if you choose to bundle a service account key (not required for the stateless watch flow).
+* `/credentials` - optional; contains `google-key.json` only if you choose to bundle a service account key (not required for the stateless watch flow; no sample key is included).
 * `/modules` - contains the individual modules `*.js` files.
 * `/modules/functions` - contains the core Cloud Functions in their respective `*.js` files.
 * `/tests` - contains all the JEST test files used to perform checks and validation on the functionality of the application locally, before deploying the Cloud Functions.
@@ -59,8 +59,8 @@ You must configure the Webhook and Gmail OAuth client details before you configu
 While entering values for the application config, please keep in mind the following.
 
 1. Mailboxes are not configured in this repo; each `startWatch`/`stopWatch` request supplies the mailbox email and OAuth tokens directly.
-2. `gcp.auth.clientIdEnv` / `clientSecretEnv` (or inline values) define the Gmail OAuth client used with the access tokens provided to `startWatch` and `stopWatch`.
-3. `gcp.pubsub.topicEnv` (or `topic`) defines the Pub/Sub topic path for Gmail watches.
+2. `gcp.auth.clientId` / `clientSecret` define the Gmail OAuth client used with the access tokens provided to `startWatch` and `stopWatch` (set the actual values in `config/appconfig.json`; do not use env var names here).
+3. `gcp.pubsub.topic` (or `topic`) defines the Pub/Sub topic path for Gmail watches.
 4. `gmail` - property object is based on the **Gmail API** and more information on the appropriate values for these properties can be found in the [Gmail API Reference](https://developers.google.com/gmail/api/reference/rest).
 
 ### Minimum Configuration
@@ -68,15 +68,14 @@ For you to quickly deploy this application, you only need to provide the followi
 
 **For `/config/sample-appconfig.json` file.**
 
-1. `external.webhookUrlEnv` and `external.webhookSecretEnv` - define the environment variable names for webhook configuration (values set during deployment via `--set-env-vars`).
-2. `gcp.pubsub.topicEnv` (or `topic`) - the full topic name as provided in the Cloud Pub/Sub Dashboard.
-3. `gcp.auth.clientIdEnv` / `clientSecretEnv` (or inline values) - OAuth2 client used with the access token provided to `startWatch` and `stopWatch`.
+1. `external.webhookUrl` and `external.webhookSecret` - define the environment variable names for webhook configuration (values set during deployment via `--set-env-vars`).
+2. `gcp.pubsub.topic` (or `topic`) - the full topic name as provided in the Cloud Pub/Sub Dashboard.
+3. `gcp.auth.clientId` / `clientSecret` - OAuth2 client used with the access token provided to `startWatch` and `stopWatch` (actual values, not env var names).
 
 **Environment Variables (set during deployment):**
 - `WEBHOOK_URL` - a fully qualified URL to an external service that accepts a `POST` request with the body: `{ emailAddress: 'mailbox@example.com' }`
 - `WEBHOOK_SECRET` - (Optional) a shared secret for HMAC signing. If set, outgoing notifications include an `X-Signature` header with HMAC-SHA256 hex digest of the JSON payload.
 - `PUBSUB_TOPIC` - Pub/Sub topic name used for Gmail watch callbacks.
-- `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` - OAuth2 client used with mailbox access tokens.
 
 ### Rename Config File
 
@@ -88,8 +87,8 @@ Webhook settings must be configured using environment variables. The environment
 
 ```json
 "external": {
-    "webhookUrlEnv": "WEBHOOK_URL",
-    "webhookSecretEnv": "WEBHOOK_SECRET"
+    "webhookUrl": "WEBHOOK_URL",
+    "webhookSecret": "WEBHOOK_SECRET"
 }
 ```
 
