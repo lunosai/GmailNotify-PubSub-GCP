@@ -5,9 +5,7 @@ const secretClient = new SecretManagerServiceClient();
 const SECRET_IDS = {
     webhookUrl: "WEBHOOK_URL",
     webhookSecret: "WEBHOOK_SECRET",
-    pubsubTopic: "PUBSUB_TOPIC",
-    googleClientId: "GOOGLE_CLIENT_ID",
-    googleClientSecret: "GOOGLE_CLIENT_SECRET"
+    pubsubTopic: "PUBSUB_TOPIC"
 };
 
 const cachedSecrets = new Map();
@@ -78,19 +76,9 @@ async function getPubSubTopic() {
     return getSecret(SECRET_IDS.pubsubTopic);
 }
 
-async function getGmailAuthConfig() {
-    const [clientId, clientSecret] = await Promise.all([
-        getSecret(SECRET_IDS.googleClientId),
-        getSecret(SECRET_IDS.googleClientSecret)
-    ]);
-
-    return { clientId, clientSecret };
-}
-
 module.exports = {
     SECRET_IDS,
     getSecret,
     getWebhookConfig,
-    getPubSubTopic,
-    getGmailAuthConfig
+    getPubSubTopic
 };
