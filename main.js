@@ -2,6 +2,6 @@ const ProcessMessageFunc = require("./modules/functions/processMessage");
 const StartWatchFunc = require("./modules/functions/startWatch");
 const StopWatchFunc = require("./modules/functions/stopWatch");
 
-exports.processMessage = ProcessMessageFunc.ProcessMessage;
+exports.processMessage = ProcessMessageFunc.processMessage;
 exports.startWatch = StartWatchFunc.startWatch;
 exports.stopWatch = StopWatchFunc.stopWatch;
