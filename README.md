@@ -3,12 +3,13 @@
 ## Introduction
 **GmailNotify** This is a quick project made to consume Pub-Sub messages sent via Gmail to be processed and finally execute a Webhook for external services to receive a push of email data. It now supports multiple Gmail mailboxes in a single deployment.
 
-It is in essense a set of NodeJS Cloud Functions to handle Gmail Notifications which can be configured to receive wide range of Gmail notifications based on the `config/appconfig.json` file setting.
+It is in essense a set of NodeJS Cloud Functions to handle Gmail Notifications; runtime configuration is pulled from Google Secret Manager.
 
 ## Technologies Used
 * NodeJS v14
 * googleapis v85.0.0
 * phin v3.6.0
+* @google-cloud/secret-manager
 
 ## Google Cloud Resources Used
 * Cloud Functions
@@ -20,11 +21,11 @@ It is in essense a set of NodeJS Cloud Functions to handle Gmail Notifications w
 The code is structured for clean and simple implementation as well as maintenance.
 
 ### Primary Folder's Explanation
-* `/config` - contains the `appconfig.json` file (renamed from `sample-appconfig.json` template file) after putting in the values.
 * `/credentials` - optional; contains `google-key.json` only if you choose to bundle a service account key (not required for the stateless watch flow; no sample key is included).
 * `/modules` - contains the individual modules `*.js` files.
 * `/modules/functions` - contains the core Cloud Functions in their respective `*.js` files.
 * `/tests` - contains all the JEST test files used to perform checks and validation on the functionality of the application locally, before deploying the Cloud Functions.
+* Configuration values are stored in Google Secret Manager (no local config files are required).
 
 ## Compiling
 There are scripts already part of the `package.json` file to publish the project into the `/publish` directory and zip the output with the project name and version (from `package.json.version` property) for quick upload and deployment of Cloud Functions.
@@ -33,8 +34,6 @@ There are scripts already part of the `package.json` file to publish the project
 ```
 npm run publish
 ```
-> Don't forget to rename the `sample-appconfig.json` file in `/config` (see below section **Basic Application Configuration**).
-
 Publish outputs to a zip file
 ```
 /publish/GNFunc_v{version}.zip
@@ -53,89 +52,16 @@ The Cloud Function is deployed so that it starts the code in the `/main.js` file
 To get the Google Cloud Credentials, you need to complete the following steps on your Google Cloud Platform account.
 
 ## Basic Application Configuration
-You must configure the Webhook and Gmail OAuth client details before you configure the application.
+You must configure the Webhook, Pub/Sub topic, and Gmail OAuth client details before you configure the application. All values are loaded from Google Secret Manager at runtime; grant the Cloud Functions runtime service account access to the secrets.
 
-### Rules
-While entering values for the application config, please keep in mind the following.
-
-1. Mailboxes are not configured in this repo; each `startWatch`/`stopWatch` request supplies the mailbox email and OAuth tokens directly.
-2. `gcp.auth.clientId` / `clientSecret` define the Gmail OAuth client used with the access tokens provided to `startWatch` and `stopWatch` (set the actual values in `config/appconfig.json`; do not use env var names here).
-3. `gcp.pubsub.topic` (or `topic`) defines the Pub/Sub topic path for Gmail watches.
-4. `gmail` - property object is based on the **Gmail API** and more information on the appropriate values for these properties can be found in the [Gmail API Reference](https://developers.google.com/gmail/api/reference/rest).
-
-### Minimum Configuration
-For you to quickly deploy this application, you only need to provide the following configuration
-
-**For `/config/sample-appconfig.json` file.**
-
-1. `external.webhookUrl` and `external.webhookSecret` - define the environment variable names for webhook configuration (values set during deployment via `--set-env-vars`).
-2. `gcp.pubsub.topic` (or `topic`) - the full topic name as provided in the Cloud Pub/Sub Dashboard.
-3. `gcp.auth.clientId` / `clientSecret` - OAuth2 client used with the access token provided to `startWatch` and `stopWatch` (actual values, not env var names).
-
-**Environment Variables (set during deployment):**
+### Required secrets
 - `WEBHOOK_URL` - a fully qualified URL to an external service that accepts a `POST` request with the body: `{ emailAddress: 'mailbox@example.com' }`
 - `WEBHOOK_SECRET` - (Optional) a shared secret for HMAC signing. If set, outgoing notifications include an `X-Signature` header with HMAC-SHA256 hex digest of the JSON payload.
-- `PUBSUB_TOPIC` - Pub/Sub topic name used for Gmail watch callbacks.
+- `PUBSUB_TOPIC` - Pub/Sub topic name used for Gmail watch callbacks (full topic resource name is recommended).
+- `GOOGLE_CLIENT_ID` - OAuth2 client ID used with the access token provided to `startWatch` and `stopWatch`.
+- `GOOGLE_CLIENT_SECRET` - OAuth2 client secret matching the above client.
 
-### Rename Config File
-
-* Rename the `sample-appconfig.json` file to `appconfig.json` file.
-
-### Environment Variables
-
-Webhook settings must be configured using environment variables. The environment variable names are defined in `config/appconfig.json`:
-
-```json
-"external": {
-    "webhookUrl": "WEBHOOK_URL",
-    "webhookSecret": "WEBHOOK_SECRET"
-}
-```
-
-**Deploying to Google Cloud Functions with environment variables:**
-
-Deploy the `processMessage` function (Pub/Sub trigger):
-```bash
-gcloud functions deploy processMessage \
-  --runtime nodejs14 \
-  --trigger-topic YOUR_PUBSUB_TOPIC_NAME \
-  --entry-point processMessage \
-  --source . \
-  --set-env-vars WEBHOOK_URL=https://example.com/webhook,WEBHOOK_SECRET=your-secret-key
-```
-
-Deploy the `startWatch` function (HTTP trigger):
-```bash
-gcloud functions deploy startWatch \
-  --runtime nodejs14 \
-  --trigger-http \
-  --allow-unauthenticated \
-  --entry-point startWatch \
-  --source . \
-  --set-env-vars WEBHOOK_URL=https://example.com/webhook,WEBHOOK_SECRET=your-secret-key
-```
-
-Deploy the `stopWatch` function (HTTP trigger):
-```bash
-gcloud functions deploy stopWatch \
-  --runtime nodejs14 \
-  --trigger-http \
-  --allow-unauthenticated \
-  --entry-point stopWatch \
-  --source . \
-  --set-env-vars WEBHOOK_URL=https://example.com/webhook,WEBHOOK_SECRET=your-secret-key
-```
-
-**To update environment variables on existing functions:**
-```bash
-gcloud functions deploy processMessage \
-  --update-env-vars WEBHOOK_URL=https://new-url.com/webhook
-```
-
-**To view current environment variables:**
-```bash
-gcloud functions describe processMessage --format="value(environmentVariables)"
-```
+Secrets can be referenced by simple IDs (above) in the project identified by `GCLOUD_PROJECT`/`GCP_PROJECT`, or by full resource names such as `projects/<project>/secrets/WEBHOOK_URL/versions/latest`.
 
 ### Stateless mailbox handling
 
@@ -145,7 +71,7 @@ gcloud functions describe processMessage --format="value(environmentVariables)"
 - The Pub/Sub handler forwards only the `emailAddress` from the incoming Gmail notification to your webhook; it does not fetch or include message contents.
 
 ### Webhook signature
-- If `external.webhookSecret` is set, outgoing webhook requests include an `X-Signature` header containing an HMAC-SHA256 hex digest of the JSON payload (the same secret is used for all mailboxes).
+- If the `WEBHOOK_SECRET` secret is set, outgoing webhook requests include an `X-Signature` header containing an HMAC-SHA256 hex digest of the JSON payload (the same secret is used for all mailboxes).
 - When no secret is provided, the header is omitted and requests are sent unsigned.
 - Payload shape: `{ "emailAddress": "<mailbox email from Pub/Sub payload>" }` (only field).
 

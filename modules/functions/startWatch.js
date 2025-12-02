@@ -1,7 +1,5 @@
-const appConfig = require("../../config/appconfig.json");
 const gmail = require("../gmail");
-
-const topicName = process.env[appConfig.gcp.pubsub.topic];
+const { getPubSubTopic } = require("../secrets");
 
 /**
  * A Google Cloud Function with an HTTP trigger signature, Used to start Gmail Pub/Sub Notifications by calling the Gmail API "users.watch", more details in link below.
@@ -23,6 +21,7 @@ exports.startWatch = async (req, res) => {
         return;
       }
 
+      const topicName = await getPubSubTopic();
       if (!topicName) {
         res.status(500).send("Pub/Sub topic is not configured");
         return;

@@ -1,9 +1,5 @@
 const crypto = require("crypto");
-const appConfig = require("../../config/appconfig.json");
-
-const webhookConfig = (appConfig.external) || {};
-const webhookUrl = process.env[webhookConfig.webhookUrl];
-const webhookSecret = process.env[webhookConfig.webhookSecret];
+const { getWebhookConfig } = require("../secrets");
 
 /**
  * A Google Cloud Function with an Pub/Sub trigger signature.
@@ -12,7 +8,7 @@ const webhookSecret = process.env[webhookConfig.webhookSecret];
  * @param {Object} context The event metadata
  * @return {Promise} A Promise so the GCP function does not stop execution till the returned promise is resolved or gets rejected.
  */
-exports.ProcessMessage = async (event, context) => {
+exports.processMessage = async (event, context) => {
     try {
         const message = event.data ? Buffer.from(event.data, "base64").toString() : "";
         const msgObj = message ? JSON.parse(message) : {};
@@ -36,6 +32,7 @@ exports.ProcessMessage = async (event, context) => {
  * @param {String} emailAddress The email address received in the Pub/Sub payload
  */
 async function sendNotification(emailAddress) {
+    const { webhookUrl, webhookSecret } = await getWebhookConfig();
     if (!webhookUrl || !webhookSecret) {
         console.warn("Webhook URL or secret not configured; skipping notification for mailbox: " + emailAddress);
         return;

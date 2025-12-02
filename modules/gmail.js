@@ -1,9 +1,5 @@
-const appConfig = require("../config/appconfig.json");
 const { google } = require('googleapis');
-
-const authConfig = (appConfig.gcp && appConfig.gcp.auth) || {};
-const clientId = process.env[authConfig.clientId];
-const clientSecret = process.env[authConfig.clientSecret];
+const { getGmailAuthConfig } = require("./secrets");
 
 /**
  * Gets the authenticated Gmail API for the requested mailbox using provided access/refresh tokens.
@@ -14,6 +10,10 @@ const clientSecret = process.env[authConfig.clientSecret];
 async function getAuthenticatedGmail(accessToken) {
     if (!accessToken) {
         throw new Error("Mailbox accessToken is required");
+    }
+    const { clientId, clientSecret } = await getGmailAuthConfig();
+    if (!clientId || !clientSecret) {
+        throw new Error("Gmail OAuth client secrets are not configured");
     }
     const oauth2Client = new google.auth.OAuth2(clientId, clientSecret);
     oauth2Client.setCredentials({
