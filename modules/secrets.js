@@ -10,21 +10,12 @@ const SECRET_IDS = {
 
 const cachedSecrets = new Map();
 
-function resolveProjectId() {
-    return process.env.GCLOUD_PROJECT || process.env.GCP_PROJECT || process.env.SECRET_PROJECT_ID;
-}
-
 function buildSecretResourceName(secretId) {
     if (secretId.includes("/")) {
         return secretId;
     }
 
-    const projectId = resolveProjectId();
-    if (!projectId) {
-        throw new Error("Project ID is not configured; set GCLOUD_PROJECT or GCP_PROJECT.");
-    }
-
-    return `projects/${projectId}/secrets/${secretId}/versions/latest`;
+    return `projects/gmail-mailbox-notifications/secrets/${secretId}/versions/latest`;
 }
 
 async function readSecret(secretId, optional) {

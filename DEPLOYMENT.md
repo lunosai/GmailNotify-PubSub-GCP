@@ -4,51 +4,49 @@ These commands assume the GCP project, Pub/Sub topic, and Secret Manager entries
 
 ## 1) Set helpful environment variables
 ```bash
-PROJECT_ID=<your-project-id>
-REGION=us-central1
-RUNTIME=nodejs18         # match the runtime currently in use
-TOPIC=gmail-notify       # topic name without the projects/<id>/topics/ prefix
-AUTH_FLAG=--no-allow-unauthenticated   # use --allow-unauthenticated if you expose the HTTP endpoints publicly
+PROJECT_ID=gmail-mailbox-notifications
+REGION=us-east1
+RUNTIME=nodejs22
+TOPIC=gmail-notify
+SA=297192313992-compute@developer.gserviceaccount.com
 ```
 
 ## 2) Build the deployment zip
 ```bash
-npm ci          # or npm install
+npm install
 npm run publish
-ZIP_PATH=$(ls publish/GNFunc_v*.zip | sort | tail -1)
 ```
 
 ## 3) Deploy the Pub/Sub triggered function
-Add `--set-env-vars SECRET_PROJECT_ID="$SECRET_PROJECT_ID"` if your secrets are kept in a different project.
 ```bash
 gcloud functions deploy processMessage \
-  --project="$PROJECT_ID" \
-  --region="$REGION" \
-  --runtime="$RUNTIME" \
+  --gen2 \
+  --runtime=$RUNTIME \
+  --source=. \
   --entry-point=processMessage \
-  --source="$ZIP_PATH" \
-  --trigger-topic="$TOPIC"
+  --trigger-topic=$TOPIC \
+  --service-account=$SA
 ```
 
-## 4) Deploy the HTTP helpers
+## 4) Deploy startWatch & stopWatch
 ```bash
 # Start Gmail watch
 gcloud functions deploy startWatch \
-  --project="$PROJECT_ID" \
-  --region="$REGION" \
-  --runtime="$RUNTIME" \
-  --entry-point=startWatch \
-  --source="$ZIP_PATH" \
-  --trigger-http $AUTH_FLAG
+    --gen2 \
+    --runtime=$RUNTIME \
+    --source=. \
+    --entry-point=startWatch \
+    --trigger-http \
+    --service-account=$SA
 
 # Stop Gmail watch
 gcloud functions deploy stopWatch \
-  --project="$PROJECT_ID" \
-  --region="$REGION" \
-  --runtime="$RUNTIME" \
-  --entry-point=stopWatch \
-  --source="$ZIP_PATH" \
-  --trigger-http $AUTH_FLAG
+    --gen2 \
+    --runtime=$RUNTIME \
+    --source=. \
+    --entry-point=stopWatch \
+    --trigger-http \
+    --service-account=$SA
 ```
 
 ## 5) Quick verification
