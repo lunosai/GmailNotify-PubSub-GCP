@@ -2,7 +2,7 @@ const crypto = require("crypto");
 const { getWebhookConfig } = require("../secrets");
 
 /**
- * A Google Cloud Function with an Pub/Sub trigger signature.
+ * A Google Cloud Function with a Pub/Sub trigger signature.
  *
  * @param {Object} event The Pub/Sub message
  * @param {Object} context The event metadata
@@ -22,7 +22,7 @@ exports.processMessage = async (event, context) => {
         console.debug(`Function execution completed for mailbox ${emailAddress}`);
     }
     catch (ex) {
-        throw new Error("Error occured while processing message: " + ex);
+        throw new Error("Error occurred while processing message: " + ex);
     }
 };
 

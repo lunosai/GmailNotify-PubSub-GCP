@@ -4,11 +4,10 @@ These commands assume the GCP project, Pub/Sub topic, and Secret Manager entries
 
 ## 1) Set helpful environment variables
 ```bash
-PROJECT_ID=gmail-mailbox-notifications
-REGION=us-east1
+PROJECT_ID=dashboard-472020
 RUNTIME=nodejs22
 TOPIC=gmail-notify
-SA=297192313992-compute@developer.gserviceaccount.com
+SA=595367417037-compute@developer.gserviceaccount.com
 ```
 
 ## 2) Build the deployment zip
@@ -49,7 +48,13 @@ gcloud functions deploy stopWatch \
     --service-account=$SA
 ```
 
-## 5) Quick verification
-- Confirm the upload: `gcloud functions describe processMessage --project "$PROJECT_ID" --region "$REGION"` (repeat for the HTTP functions).
+## 5) Roles
+Ensure these roles are enabled to the Service Account to allow it to build, deploy, and invoke Cloud Functions:
+- Secret Manager Secret Accessor
+- Cloud Run Invoker
+- Cloud Build Service Account
+
+## 6) Quick verification
+- Confirm the upload: `gcloud functions describe processMessage --project "$PROJECT_ID"` (repeat for the HTTP functions).
 - Send a POST to `startWatch` with a valid Gmail OAuth access token to ensure a watch is created.
 - Publish a test message to the Pub/Sub topic and confirm the webhook receives a signed payload.

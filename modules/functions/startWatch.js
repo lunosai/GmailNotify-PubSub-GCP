@@ -39,11 +39,11 @@ exports.startWatch = async (req, res) => {
 
       res.status(200).json({
         message: "Successfully Started Watching",
-        result: [{
+        result: {
           email,
           expiresInMs,
           response: respData
-        }]
+        }
       });
     }
     catch(ex) {

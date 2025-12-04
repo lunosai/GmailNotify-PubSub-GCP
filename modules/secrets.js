@@ -15,7 +15,7 @@ function buildSecretResourceName(secretId) {
         return secretId;
     }
 
-    return `projects/gmail-mailbox-notifications/secrets/${secretId}/versions/latest`;
+    return `projects/dashboard-472020/secrets/${secretId}/versions/latest`;
 }
 
 async function readSecret(secretId, optional) {
