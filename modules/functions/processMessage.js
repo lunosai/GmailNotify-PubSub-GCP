@@ -13,12 +13,13 @@ exports.processMessage = async (event, context) => {
         const message = event.data ? Buffer.from(event.data, "base64").toString() : "";
         const msgObj = message ? JSON.parse(message) : {};
         const emailAddress = msgObj.emailAddress || msgObj.email;
+        const historyId = msgObj.historyId;
         if (!emailAddress) {
             console.warn("emailAddress missing in Pub/Sub payload; skipping notification");
             return;
         }
 
-        await sendNotification(emailAddress);
+        await sendNotification(emailAddress, historyId);
         console.debug(`Function execution completed for mailbox ${emailAddress}`);
     }
     catch (ex) {
@@ -30,14 +31,17 @@ exports.processMessage = async (event, context) => {
  * Sends the mailbox email address to the configured webhook.
  *
  * @param {String} emailAddress The email address received in the Pub/Sub payload
+ * @param {String} [historyId] The Gmail history ID from the Pub/Sub payload
  */
-async function sendNotification(emailAddress) {
+async function sendNotification(emailAddress, historyId) {
     const { webhookUrl, webhookSecret } = await getWebhookConfig();
     if (!webhookUrl || !webhookSecret) {
         console.warn("Webhook URL or secret not configured; skipping notification for mailbox: " + emailAddress);
         return;
     }
-    const payload = JSON.stringify({ emailAddress });
+    const body = { emailAddress };
+    if (historyId) body.historyId = historyId;
+    const payload = JSON.stringify(body);
     const headers = {
         "Content-Type": "application/json"
     };
